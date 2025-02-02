@@ -33,7 +33,11 @@ class Music(commands.Cog):
             'quiet': True,
             'no_warnings': True,
             'default_search': 'ytsearch1',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         }
+
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
     async def search_youtube(self, query):
