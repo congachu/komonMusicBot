@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import yt_dlp
-import urllib.parse
 from dotenv import load_dotenv
 import os
 import googleapiclient.discovery
