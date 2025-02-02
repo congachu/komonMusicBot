@@ -18,11 +18,11 @@ class Music(commands.Cog):
 
         # YouTube 다운로드 옵션
         self.ytdl_format_options = {
-            'format': 'bestaudio/best',
+            'format': 'bestaudio[ext=webm]/bestaudio/best',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
+                'preferredcodec': 'opus',  # opus 코덱 사용
+                'preferredquality': '192',  # 비트레이트 조정
             }],
             'outtmpl': '%(title)s.%(ext)s',
             'restrictfilenames': True,
@@ -98,7 +98,7 @@ class Music(commands.Cog):
                 executable=os.getenv("FFMPEG"),
                 **{
                     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-                    'options': '-vn -acodec libopus'
+                    'options': '-vn -acodec libopus -b:a 192k'  # 비트레이트 조정
                 }
             )
             return source
