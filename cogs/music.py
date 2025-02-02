@@ -198,13 +198,32 @@ class Music(commands.Cog):
             await interaction.response.send_message("이 채널에서는 음악 명령어를 사용할 수 없습니다.", ephemeral=True)
             return
 
+        await interaction.response.defer()  # 인터랙션 지연
+
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
             self.queue[interaction.guild.id] = []  # 대기열 초기화
             await interaction.guild.voice_client.disconnect()
-            await interaction.response.send_message("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
+            await interaction.followup.send("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
         else:
-            await interaction.response.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+            await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+
+    @app_commands.command(name="스킵", description="현재 재생 중인 노래를 스킵합니다")
+    async def skip(self, interaction: discord.Interaction):
+        # 음악봇 채널 권한 확인
+        music_settings_cog = self.bot.get_cog('GuildSetting')
+        if not await music_settings_cog.check_music_channel_permission(interaction):
+            await interaction.response.send_message("이 채널에서는 음악 명령어를 사용할 수 없습니다.", ephemeral=True)
+            return
+
+        await interaction.response.defer()  # 인터랙션 지연
+
+        if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
+            interaction.guild.voice_client.stop()
+            await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.")
+            await self.play_next(await self.bot.get_context(interaction))
+        else:
+            await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="대기열", description="현재 음악 대기열을 확인합니다")
     async def queue_list(self, interaction: discord.Interaction):
