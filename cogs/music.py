@@ -32,7 +32,9 @@ class Music(commands.Cog):
             'logtostderr': False,
             'quiet': True,
             'no_warnings': True,
-            'default_search': 'ytsearch1',  # 가장 관련성이 높은 결과만 반환
+            'default_search': 'ytsearch1',
+            # 쿠키 관련 옵션 추가
+            'cookiesfrombrowser': ('chrome',),  # or ('firefox',) for Firefox
         }
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
