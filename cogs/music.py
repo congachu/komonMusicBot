@@ -33,7 +33,6 @@ class Music(commands.Cog):
             'quiet': True,
             'no_warnings': True,
             'default_search': 'ytsearch1',
-            'cookiefile': '/home/ubuntu/komonMusicBot/cookies.txt',
         }
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
