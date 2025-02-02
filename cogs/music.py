@@ -97,7 +97,7 @@ class Music(commands.Cog):
                 audio_url,
                 executable=os.getenv("FFMPEG"),
                 **{
-                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -http_persistent 1',
                     'options': '-vn -acodec libopus -b:a 192k'  # 비트레이트 조정
                 }
             )
@@ -108,6 +108,10 @@ class Music(commands.Cog):
 
     async def play_next(self, ctx):
         """다음 노래 재생"""
+        if ctx.voice_client is None:  # 봇이 음성 채널에 연결되어 있지 않으면 종료
+            print("봇이 음성 채널에 연결되어 있지 않습니다.")
+            return
+
         if not ctx.guild.id in self.queue or len(self.queue[ctx.guild.id]) == 0:
             # 대기열 비어있으면 연결 해제
             await ctx.voice_client.disconnect()
@@ -117,6 +121,11 @@ class Music(commands.Cog):
         next_song = self.queue[ctx.guild.id].pop(0)
 
         try:
+            # 현재 재생 중인 오디오가 있다면 중지
+            if ctx.voice_client.is_playing():
+                ctx.voice_client.stop()
+                await asyncio.sleep(1)  # 잠시 대기
+
             audio_source = await self.get_audio_source(next_song['url'])
             if not audio_source:
                 await ctx.send("오디오 소스를 가져오는 데 실패했습니다.")
@@ -218,10 +227,22 @@ class Music(commands.Cog):
 
         await interaction.response.defer()  # 인터랙션 지연
 
-        if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
-            interaction.guild.voice_client.stop()
+        voice_client = interaction.guild.voice_client
+        if voice_client is None or not voice_client.is_connected():
+            await interaction.followup.send("봇이 음성 채널에 연결되어 있지 않습니다.", ephemeral=True)
+            return
+
+        if voice_client.is_playing():
+            voice_client.stop()
             await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.")
-            await self.play_next(await self.bot.get_context(interaction))
+
+            # ctx 객체 생성
+            ctx = await self.bot.get_context(interaction)
+            if ctx.voice_client is None:
+                await interaction.followup.send("봇이 음성 채널에 연결되어 있지 않습니다.", ephemeral=True)
+                return
+
+            await self.play_next(ctx)  # 다음 노래 재생
         else:
             await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
