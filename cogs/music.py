@@ -209,7 +209,7 @@ class Music(commands.Cog):
     @app_commands.command(name="대기열", description="현재 음악 대기열을 확인합니다")
     async def queue_list(self, interaction: discord.Interaction):
         # 음악봇 채널 권한 확인
-        music_settings_cog = self.bot.get_cog('MusicBotSettings')
+        music_settings_cog = self.bot.get_cog('GuildSetting')
         if not await music_settings_cog.check_music_channel_permission(interaction):
             await interaction.response.send_message("이 채널에서는 음악 명령어를 사용할 수 없습니다.", ephemeral=True)
             return
