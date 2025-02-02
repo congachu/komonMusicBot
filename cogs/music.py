@@ -6,6 +6,7 @@ import yt_dlp
 import urllib.parse
 from dotenv import load_dotenv
 import os
+import googleapiclient.discovery
 
 load_dotenv()
 
@@ -32,24 +33,41 @@ class Music(commands.Cog):
             'logtostderr': False,
             'quiet': True,
             'no_warnings': True,
-            'default_search': 'ytsearch',
+            'default_search': 'ytsearch1',  # 가장 관련성이 높은 결과만 반환
         }
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
     async def search_youtube(self, query):
         """YouTube에서 가장 연관성 높은 영상 검색"""
         try:
-            # URL 인코딩
-            encoded_query = urllib.parse.quote(query)
-            info = self.ytdl.extract_info(f"ytsearch1:{encoded_query}", download=False)['entries'][0]
+            api_service_name = "youtube"
+            api_version = "v3"
+            api_key = os.getenv("YOUTUBE_API_KEY")  # 환경 변수에서 API 키 가져오기
+
+            youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
+
+            request = youtube.search().list(
+                q=query,
+                part="snippet",
+                maxResults=1,
+                type="video"
+            )
+            response = request.execute()
+
+            if not response['items']:
+                return None
+
+            video_id = response['items'][0]['id']['videoId']
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+
             return {
-                'title': info['title'],
-                'url': info['webpage_url'],
-                'duration': info.get('duration', 0),
-                'thumbnail': info.get('thumbnail', '')
+                'title': response['items'][0]['snippet']['title'],
+                'url': video_url,
+                'duration': 0,  # YouTube API는 duration을 직접 제공하지 않음
+                'thumbnail': response['items'][0]['snippet']['thumbnails']['default']['url']
             }
         except Exception as e:
-            print(f"YouTube 검색 중 오류: {e}")
+            print(f"YouTube API 검색 중 오류: {e}")
             return None
 
     async def get_audio_source(self, url):
