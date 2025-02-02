@@ -33,8 +33,7 @@ class Music(commands.Cog):
             'quiet': True,
             'no_warnings': True,
             'default_search': 'ytsearch1',
-            # 쿠키 관련 옵션 추가
-            'cookiesfrombrowser': ('chrome',),  # or ('firefox',) for Firefox
+            'cookiefile': '/home/ubuntu/komonMusicBot/cookies.txt',
         }
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
