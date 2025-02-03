@@ -42,37 +42,54 @@ class Music(commands.Cog):
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
     async def search_youtube(self, query):
-        """YouTube에서 가장 연관성 높은 영상 검색"""
-        try:
-            api_service_name = "youtube"
-            api_version = "v3"
-            api_key = os.getenv("YOUTUBE_API_KEY")  # 환경 변수에서 API 키 가져오기
-
-            youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
-
-            request = youtube.search().list(
-                q=query,
-                part="snippet",
-                maxResults=1,
-                type="video"
-            )
-            response = request.execute()
-
-            if not response['items']:
+        # 유튜브 링크인지 확인 (예: https://www.youtube.com/watch?v=...)
+        if query.startswith("https://www.youtube.com/watch?v=") or query.startswith("https://youtu.be/"):
+            # 링크인 경우, 해당 링크를 그대로 사용
+            video_url = query
+            try:
+                # 영상 정보 추출
+                info = self.ytdl.extract_info(video_url, download=False)
+                return {
+                    'title': info.get('title', 'Unknown Title'),
+                    'url': video_url,
+                    'duration': info.get('duration', 0),
+                    'thumbnail': info.get('thumbnail', '')
+                }
+            except Exception as e:
+                print(f"유튜브 링크 처리 중 오류: {e}")
                 return None
+        else:
+            # 텍스트인 경우, YouTube API를 사용하여 검색
+            try:
+                api_service_name = "youtube"
+                api_version = "v3"
+                api_key = os.getenv("YOUTUBE_API_KEY")  # 환경 변수에서 API 키 가져오기
 
-            video_id = response['items'][0]['id']['videoId']
-            video_url = f"https://www.youtube.com/watch?v={video_id}"
+                youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
 
-            return {
-                'title': response['items'][0]['snippet']['title'],
-                'url': video_url,
-                'duration': 0,  # YouTube API는 duration을 직접 제공하지 않음
-                'thumbnail': response['items'][0]['snippet']['thumbnails']['default']['url']
-            }
-        except Exception as e:
-            print(f"YouTube API 검색 중 오류: {e}")
-            return None
+                request = youtube.search().list(
+                    q=query,
+                    part="snippet",
+                    maxResults=1,
+                    type="video"
+                )
+                response = request.execute()
+
+                if not response['items']:
+                    return None
+
+                video_id = response['items'][0]['id']['videoId']
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+                return {
+                    'title': response['items'][0]['snippet']['title'],
+                    'url': video_url,
+                    'duration': 0,  # YouTube API는 duration을 직접 제공하지 않음
+                    'thumbnail': response['items'][0]['snippet']['thumbnails']['default']['url']
+                }
+            except Exception as e:
+                print(f"YouTube API 검색 중 오류: {e}")
+                return None
 
     async def get_audio_source(self, url):
         """오디오 소스 추출"""
