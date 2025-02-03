@@ -97,7 +97,7 @@ class Music(commands.Cog):
                 audio_url,
                 executable=os.getenv("FFMPEG"),
                 **{
-                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -http_persistent 1',
+                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
                     'options': '-vn -acodec libopus -b:a 192k'  # 비트레이트 조정
                 }
             )
