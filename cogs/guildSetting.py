@@ -46,7 +46,7 @@ class GuildSetting(commands.Cog):
 
             self.bot.conn.commit()
             await interaction.response.send_message(
-                f"{interaction.channel.mention} 채널에서만 노래봇 명령어를 사용할 수 있습니다.")
+                f"{interaction.channel.mention} 채널에서만 노래봇 명령어를 사용할 수 있습니다.", ephemeral=True)
 
         except Exception as e:
             self.bot.conn.rollback()
@@ -70,7 +70,7 @@ class GuildSetting(commands.Cog):
             settings = cursor.fetchone()
 
             if not settings:
-                await interaction.response.send_message("설정된 음악 채널이 없습니다.")
+                await interaction.response.send_message("설정된 음악 채널이 없습니다.", ephemeral=True)
                 return
 
             allowed_channel = interaction.guild.get_channel(settings[0])
