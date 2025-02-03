@@ -128,7 +128,7 @@ class Music(commands.Cog):
 
             audio_source = await self.get_audio_source(next_song['url'])
             if not audio_source:
-                await ctx.send("오디오 소스를 가져오는 데 실패했습니다.")
+                await ctx.send("오디오 소스를 가져오는 데 실패했습니다.", ephemeral=True)
                 return
 
             ctx.voice_client.play(audio_source,
@@ -143,7 +143,7 @@ class Music(commands.Cog):
 
         except Exception as e:
             print(f"노래 재생 중 오류: {e}")
-            await ctx.send("노래를 재생하는 중 오류가 발생했습니다.")
+            await ctx.send("노래를 재생하는 중 오류가 발생했습니다.", ephemeral=True)
 
     @app_commands.command(name="재생", description="YouTube에서 노래를 검색하여 재생합니다")
     async def play(self, interaction: discord.Interaction, query: str):
@@ -158,7 +158,7 @@ class Music(commands.Cog):
 
             # 음성 채널 연결 확인
             if interaction.user.voice is None:
-                await interaction.followup.send("음성 채널에 먼저 접속해주세요.")
+                await interaction.followup.send("음성 채널에 먼저 접속해주세요.", ephemeral=True)
                 return
 
             voice_channel = interaction.user.voice.channel
@@ -166,7 +166,7 @@ class Music(commands.Cog):
             # YouTube 검색
             song = await self.search_youtube(query)
             if not song:
-                await interaction.followup.send("노래를 찾을 수 없습니다.")
+                await interaction.followup.send("노래를 찾을 수 없습니다.", ephemeral=True)
                 return
 
             # 음성 채널 연결
@@ -195,7 +195,7 @@ class Music(commands.Cog):
         except Exception as e:
             print(f"재생 중 오류: {e}")
             try:
-                await interaction.followup.send("노래를 재생하는 중 오류가 발생했습니다.")
+                await interaction.followup.send("노래를 재생하는 중 오류가 발생했습니다.", ephemeral=True)
             except:
                 pass
 
@@ -213,7 +213,7 @@ class Music(commands.Cog):
             interaction.guild.voice_client.stop()
             self.queue[interaction.guild.id] = []  # 대기열 초기화
             await interaction.guild.voice_client.disconnect()
-            await interaction.followup.send("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
+            await interaction.followup.send("음악 재생을 중지하고 음성 채널에서 나갔습니다.", ephemeral=True)
         else:
             await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
@@ -234,7 +234,7 @@ class Music(commands.Cog):
 
         if voice_client.is_playing():
             voice_client.stop()
-            await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.")
+            await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.", ephemeral=True)
 
             # ctx 객체 생성
             ctx = await self.bot.get_context(interaction)
