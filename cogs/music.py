@@ -148,6 +148,7 @@ class Music(commands.Cog):
                 await ctx.send("오디오 소스를 가져오는 데 실패했습니다.", ephemeral=True)
                 return
 
+            # after 콜백을 사용하여 다음 노래 재생
             ctx.voice_client.play(audio_source,
                                   after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop))
 
@@ -252,14 +253,6 @@ class Music(commands.Cog):
         if voice_client.is_playing():
             voice_client.stop()
             await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.", ephemeral=True)
-
-            # ctx 객체 생성
-            ctx = await self.bot.get_context(interaction)
-            if ctx.voice_client is None:
-                await interaction.followup.send("봇이 음성 채널에 연결되어 있지 않습니다.", ephemeral=True)
-                return
-
-            await self.play_next(ctx)  # 다음 노래 재생
         else:
             await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
