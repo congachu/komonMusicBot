@@ -1,11 +1,10 @@
 import asyncio
 import discord
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, VoiceState, Member
 import yt_dlp
 from dotenv import load_dotenv
 import os
-import googleapiclient.discovery
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
@@ -51,6 +50,18 @@ class Music(commands.Cog):
         }
 
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
+        # 봇이 강제로 연결이 끊겼는지 확인
+        if member.id == self.bot.user.id and before.channel and not after.channel:
+            # 봇이 음성 채널에서 나갔을 때
+            guild_id = before.channel.guild.id
+            if guild_id in self.queue:
+                # 대기열 초기화
+                self.queue[guild_id] = []
+                self.current_song.pop(guild_id, None)
+                print(f"봇이 강제로 연결이 끊겼습니다. 대기열을 초기화했습니다. (서버 ID: {guild_id})")
 
     async def get_spotify_playlist_tracks(self, playlist_url):
         """스포티파이 플레이리스트의 트랙 목록 가져오기"""
