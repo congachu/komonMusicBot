@@ -6,6 +6,9 @@ import yt_dlp
 from dotenv import load_dotenv
 import os
 import googleapiclient.discovery
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+
 
 load_dotenv()
 
@@ -15,6 +18,14 @@ class Music(commands.Cog):
         self.bot = bot
         self.queue = {}  # 서버별 재생 대기열
         self.current_song = {}  # 현재 재생 중인 노래 정보
+
+        # Spotify API 설정
+        self.spotify = spotipy.Spotify(
+            auth_manager=SpotifyClientCredentials(
+                client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+                client_secret=os.getenv("SPOTIFY_CLIENT_SECRET")
+            )
+        )
 
         # YouTube 다운로드 옵션
         self.ytdl_format_options = {
@@ -41,7 +52,30 @@ class Music(commands.Cog):
 
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
+    async def get_spotify_playlist_tracks(self, playlist_url):
+        """스포티파이 플레이리스트의 트랙 목록 가져오기"""
+        try:
+            # 플레이리스트 ID 추출
+            playlist_id = playlist_url.split("/")[-1].split("?")[0]
+
+            # 플레이리스트 트랙 목록 가져오기
+            results = self.spotify.playlist_tracks(playlist_id)
+            tracks = results['items']
+
+            # 트랙 제목과 아티스트 이름 추출
+            track_list = []
+            for track in tracks:
+                track_name = track['track']['name']
+                artist_name = track['track']['artists'][0]['name']
+                track_list.append(f"{track_name} {artist_name}")
+
+            return track_list
+        except Exception as e:
+            print(f"스포티파이 플레이리스트 처리 중 오류: {e}")
+            return None
+
     async def search_youtube(self, query):
+        """yt-dlp를 사용하여 YouTube에서 비디오 검색"""
         # 유튜브 링크인지 확인 (예: https://www.youtube.com/watch?v=...)
         if query.startswith("https://www.youtube.com/watch?v=") or query.startswith("https://youtu.be/"):
             # 링크인 경우, 해당 링크를 그대로 사용
@@ -59,36 +93,32 @@ class Music(commands.Cog):
                 print(f"유튜브 링크 처리 중 오류: {e}")
                 return None
         else:
-            # 텍스트인 경우, YouTube API를 사용하여 검색
+            # 텍스트인 경우, yt-dlp를 사용하여 검색
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'default_search': 'ytsearch1',  # 첫 번째 결과만 가져오기
+                'quiet': True,  # 로그 출력 방지
+                'extract_flat': False,  # 전체 정보 추출
+            }
+
             try:
-                api_service_name = "youtube"
-                api_version = "v3"
-                api_key = os.getenv("YOUTUBE_API_KEY")  # 환경 변수에서 API 키 가져오기
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(query, download=False)
+                    if not info or 'entries' not in info or not info['entries']:
+                        print("검색 결과가 없습니다.")
+                        return None
 
-                youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
-
-                request = youtube.search().list(
-                    q=query,
-                    part="snippet",
-                    maxResults=1,
-                    type="video"
-                )
-                response = request.execute()
-
-                if not response['items']:
-                    return None
-
-                video_id = response['items'][0]['id']['videoId']
-                video_url = f"https://www.youtube.com/watch?v={video_id}"
-
-                return {
-                    'title': response['items'][0]['snippet']['title'],
-                    'url': video_url,
-                    'duration': 0,  # YouTube API는 duration을 직접 제공하지 않음
-                    'thumbnail': response['items'][0]['snippet']['thumbnails']['default']['url']
-                }
+                    # 첫 번째 결과 가져오기
+                    video = info['entries'][0]
+                    print(f"검색 결과: {video}")  # 디버깅용 로그
+                    return {
+                        'title': video.get('title', 'Unknown Title'),
+                        'url': video.get('url', ''),
+                        'duration': video.get('duration', 0),
+                        'thumbnail': video.get('thumbnail', '')
+                    }
             except Exception as e:
-                print(f"YouTube API 검색 중 오류: {e}")
+                print(f"yt-dlp 검색 중 오류: {e}")
                 return None
 
     async def get_audio_source(self, url):
@@ -181,7 +211,37 @@ class Music(commands.Cog):
 
             voice_channel = interaction.user.voice.channel
 
-            # YouTube 검색
+            # 스포티파이 플레이리스트인지 확인
+            if "open.spotify.com/playlist" in query:
+                # 스포티파이 플레이리스트 트랙 목록 가져오기
+                track_list = await self.get_spotify_playlist_tracks(query)
+                if not track_list:
+                    await interaction.followup.send("스포티파이 플레이리스트를 처리하는 중 오류가 발생했습니다.", ephemeral=True)
+                    return
+
+                # 각 트랙을 YouTube에서 검색하여 대기열에 추가
+                for track in track_list:
+                    song = await self.search_youtube(track)
+                    if song:
+                        if interaction.guild.id not in self.queue:
+                            self.queue[interaction.guild.id] = []
+                        self.queue[interaction.guild.id].append(song)
+
+                # 현재 재생 중인 노래가 없으면 바로 재생
+                voice_client = interaction.guild.voice_client
+                if voice_client is None:
+                    voice_client = await voice_channel.connect()
+                elif voice_client.channel != voice_channel:
+                    await voice_client.move_to(voice_channel)
+
+                if not voice_client.is_playing():
+                    await self.play_next(await self.bot.get_context(interaction))
+
+                # 플레이리스트 추가 완료 알림
+                await interaction.followup.send(f"플레이리스트에 {len(track_list)}개의 노래가 추가되었습니다.", ephemeral=True)
+                return
+
+            # YouTube 검색 또는 링크 처리
             song = await self.search_youtube(query)
             if not song:
                 await interaction.followup.send("노래를 찾을 수 없습니다.", ephemeral=True)
@@ -203,7 +263,6 @@ class Music(commands.Cog):
 
             # 현재 재생 중인 노래가 없으면 바로 재생
             if not voice_client.is_playing():
-                # ctx 대신 interaction 전달
                 await self.play_next(await self.bot.get_context(interaction))
             else:
                 # 대기열에 추가됨 알림
