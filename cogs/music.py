@@ -104,30 +104,21 @@ class Music(commands.Cog):
                 print(f"유튜브 링크 처리 중 오류: {e}")
                 return None
         else:
-            # 텍스트인 경우, yt-dlp를 사용하여 검색
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'default_search': 'ytsearch1',  # 첫 번째 결과만 가져오기
-                'quiet': True,  # 로그 출력 방지
-                'extract_flat': False,  # 전체 정보 추출
-            }
-
             try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(query, download=False)
-                    if not info or 'entries' not in info or not info['entries']:
-                        print("검색 결과가 없습니다.")
-                        return None
+                info = self.ytdl.extract_info(query, download=False)
+                if not info or 'entries' not in info or not info['entries']:
+                    print("검색 결과가 없습니다.")
+                    return None
 
-                    # 첫 번째 결과 가져오기
-                    video = info['entries'][0]
-                    print(f"검색 결과: {video}")  # 디버깅용 로그
-                    return {
-                        'title': video.get('title', 'Unknown Title'),
-                        'url': video.get('url', ''),
-                        'duration': video.get('duration', 0),
-                        'thumbnail': video.get('thumbnail', '')
-                    }
+                # 첫 번째 결과 가져오기
+                video = info['entries'][0]
+                print(f"검색 결과: {video}")  # 디버깅용 로그
+                return {
+                    'title': video.get('title', 'Unknown Title'),
+                    'url': video.get('url', ''),
+                    'duration': video.get('duration', 0),
+                    'thumbnail': video.get('thumbnail', '')
+                }
             except Exception as e:
                 print(f"yt-dlp 검색 중 오류: {e}")
                 return None
