@@ -58,8 +58,8 @@ class Music(commands.Cog):
             # 플레이리스트 ID 추출
             playlist_id = playlist_url.split("/")[-1].split("?")[0]
 
-            # 플레이리스트 트랙 목록 가져오기
-            results = self.spotify.playlist_tracks(playlist_id)
+            # 플레이리스트 트랙 목록 가져오기 (최대 50개로 제한)
+            results = self.spotify.playlist_tracks(playlist_id, limit=50)
             tracks = results['items']
 
             # 트랙 제목과 아티스트 이름 추출
@@ -193,7 +193,7 @@ class Music(commands.Cog):
             print(f"노래 재생 중 오류: {e}")
             await ctx.send("노래를 재생하는 중 오류가 발생했습니다.", ephemeral=True)
 
-    @app_commands.command(name="재생", description="YouTube에서 노래를 검색하여 재생합니다")
+    @app_commands.command(name="재생", description="YouTube 또는 스포티파이 플레이리스트에서 노래를 재생합니다")
     async def play(self, interaction: discord.Interaction, query: str):
         try:
             # 디퍼드 응답
@@ -214,6 +214,8 @@ class Music(commands.Cog):
             # 스포티파이 플레이리스트인지 확인
             if "open.spotify.com/playlist" in query:
                 # 스포티파이 플레이리스트 트랙 목록 가져오기
+                await interaction.followup.send("스포티파이는 현재 개발 중입니다.", ephemeral=True)
+                return
                 track_list = await self.get_spotify_playlist_tracks(query)
                 if not track_list:
                     await interaction.followup.send("스포티파이 플레이리스트를 처리하는 중 오류가 발생했습니다.", ephemeral=True)
@@ -226,6 +228,7 @@ class Music(commands.Cog):
                         if interaction.guild.id not in self.queue:
                             self.queue[interaction.guild.id] = []
                         self.queue[interaction.guild.id].append(song)
+                        await asyncio.sleep(1)  # 트랙 간 간격 추가
 
                 # 현재 재생 중인 노래가 없으면 바로 재생
                 voice_client = interaction.guild.voice_client
