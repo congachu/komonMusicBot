@@ -115,7 +115,6 @@ class Music(commands.Cog):
 
                 # 첫 번째 결과 가져오기
                 video = info['entries'][0]
-                print(f"검색 결과: {video}")  # 디버깅용 로그
                 return {
                     'title': video.get('title', 'Unknown Title'),
                     'url': video.get('url', ''),
