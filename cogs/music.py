@@ -42,6 +42,9 @@ class Music(commands.Cog):
             'logtostderr': False,
             'quiet': True,
             'no_warnings': True,
+            'noprogress': True,  # 진행 표시줄 제거
+            'nooverwrites': True,  # 덮어쓰기 경고 방지
+            'ignoreerrors': True,  # 오류 메시지 억제
             'default_search': 'ytsearch1',
             'cookiefile': '/home/ubuntu/komonMusicBot/cookies.txt',
             'http_headers': {
