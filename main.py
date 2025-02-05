@@ -60,6 +60,12 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
     await update_status()
 
+@client.event
+async def on_voice_state_update(member, before, after):
+    if member.id == client.user.id:  # 봇 자신인지 확인
+        if after.channel and not before.channel:  # 음성 채널에 새로 들어간 경우
+            await member.edit(deafen=True)  # 헤드셋 끄기 (소리 듣기 차단)
+
 # 봇 실행
 try:
     client.run(os.getenv("DISCORD_TOKEN"))
