@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands
+from discord import Activity, ActivityType
 import psycopg2
 from dotenv import load_dotenv
 
@@ -28,6 +29,13 @@ class AClient(commands.Bot):
             self.synced = True
         print("준비 완료")
 
+    async def on_ready(self):
+        server_count = len(self.guilds)  # 현재 봇이 가입된 서버 개수
+        await self.change_presence(
+            activity=discord.Game(f"🦁 {server_count}개의 서버에서 활동 중! 🎵")
+        )
+        print(f"{self.user}로 로그인 완료 | 현재 {server_count}개 서버에서 사용 중")
+
     def close_db(self):
         self.cursor.close()
         self.conn.close()
@@ -37,6 +45,20 @@ client = AClient()
 @client.event
 async def on_close():
     client.close_db()
+
+async def update_status():
+    server_count = len(client.guilds)
+    await client.change_presence(
+        activity=discord.Game(f"🦁 {server_count}개의 서버에서 활동 중! 🎵")
+    )
+
+@client.event
+async def on_guild_join(guild):
+    await update_status()
+
+@client.event
+async def on_guild_remove(guild):
+    await update_status()
 
 # 봇 실행
 try:
