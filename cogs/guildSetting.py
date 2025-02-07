@@ -8,8 +8,9 @@ class GuildSetting(commands.Cog):
         self.bot = bot
 
     async def setup_music_settings_table(self):
-        cursor = self.bot.conn.cursor()
+        cursor = None
         try:
+            cursor = self.bot.get_cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS music_bot_settings (
                     guild_id BIGINT PRIMARY KEY,
@@ -31,8 +32,9 @@ class GuildSetting(commands.Cog):
             await interaction.response.send_message("이 명령어는 관리자만 사용할 수 있습니다.", ephemeral=True)
             return
 
-        cursor = self.bot.conn.cursor()
+        cursor = None
         try:
+            cursor = self.bot.get_cursor()
             await self.setup_music_settings_table()
 
             cursor.execute("""
@@ -57,8 +59,9 @@ class GuildSetting(commands.Cog):
 
     @app_commands.command(name="음악채널확인", description="현재 노래봇 사용 가능한 채널을 확인합니다.")
     async def check_music_channel(self, interaction: discord.Interaction):
-        cursor = self.bot.conn.cursor()
+        cursor = None
         try:
+            cursor = self.bot.get_cursor()
             await self.setup_music_settings_table()
 
             cursor.execute("""
@@ -91,8 +94,9 @@ class GuildSetting(commands.Cog):
             cursor.close()
 
     async def check_music_channel_permission(self, interaction: discord.Interaction) -> bool:
-        cursor = self.bot.conn.cursor()
+        cursor = None
         try:
+            cursor = self.bot.get_cursor()
             cursor.execute("""
                 SELECT allowed_channel_id 
                 FROM music_bot_settings 

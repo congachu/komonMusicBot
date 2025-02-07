@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import commands
-from discord import Activity, ActivityType
 import psycopg2
 from dotenv import load_dotenv
 
@@ -11,13 +10,7 @@ class AClient(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=discord.Intents.all())
         self.synced = False
-        self.conn = psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST")
-        )
-        self.cursor = self.conn.cursor()
+        self.setup_db_connection()
 
     async def setup_hook(self):
         # cogs 폴더 내 모든 .py 파일을 로드합니다.
@@ -36,9 +29,45 @@ class AClient(commands.Bot):
         )
         print(f"{self.user}로 로그인 완료 | 현재 {server_count}개 서버에서 사용 중")
 
+    def setup_db_connection(self):
+        try:
+            self.conn = psycopg2.connect(
+                dbname=os.getenv("DB_NAME"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASSWORD"),
+                host=os.getenv("DB_HOST"),
+                sslmode='prefer',
+                connect_timeout=10
+            )
+            self.cursor = self.conn.cursor()
+        except Exception as e:
+            print(f"데이터베이스 연결 중 오류: {e}")
+            raise e
+
+    def ensure_db_connection(self):
+        """데이터베이스 연결 상태를 확인하고 필요시 재연결"""
+        try:
+            # 연결이 끊어졌는지 확인
+            if self.conn.closed or self.cursor.closed:
+                print("데이터베이스 연결이 끊어져 재연결을 시도합니다.")
+                self.close_db()  # 기존 연결 정리
+                self.setup_db_connection()
+            return True
+        except Exception as e:
+            print(f"데이터베이스 연결 확인 중 오류: {e}")
+            return False
+
+    def get_cursor(self):
+        """데이터베이스 연결을 확인하고 커서 반환"""
+        self.ensure_db_connection()
+        return self.conn.cursor()
+
     def close_db(self):
-        self.cursor.close()
-        self.conn.close()
+        """데이터베이스 연결 종료"""
+        if hasattr(self, 'cursor') and self.cursor:
+            self.cursor.close()
+        if hasattr(self, 'conn') and self.conn:
+            self.conn.close()
 
 client = AClient()
 
