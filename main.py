@@ -52,6 +52,12 @@ class AClient(commands.Bot):
             print(f"❌ 데이터베이스 상태 확인 중 오류: {e}")
             return False
 
+    def get_cursor(self):
+        """데이터베이스 연결을 확인하고 커서 반환"""
+        if self.ensure_db_connection():  # ensure_db_connection()이 False면 None을 반환
+            return self.conn.cursor()
+        return None  # 연결이 없으면 None 반환
+
     async def update_status(self):
         while True:
             try:
