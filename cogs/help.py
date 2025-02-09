@@ -40,7 +40,7 @@ class Help(commands.Cog):
         embed.add_field(name="📝 주의사항", value=notes, inline=False)
 
         # 푸터 추가
-        embed.set_footer(text="문의사항이나 버그 제보는 공식서버에 남겨주세요.\nhttps://discord.com/invite/ptx9u9D4WV")
+        embed.set_footer(text="문의사항이나 버그 제보는 공식서버에 남겨주세요.\nhttps://discord.gg/ptx9u9D4WV")
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
