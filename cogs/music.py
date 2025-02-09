@@ -99,8 +99,19 @@ class Music(commands.Cog):
         embed.set_thumbnail(url=next_song['thumbnail'])
         await ctx.send(embed=embed)
 
+    async def check_music_channel(self, interaction):
+        """음악 명령어가 올바른 채널에서 실행되는지 확인"""
+        settings_cog = self.bot.get_cog("GuildSetting")
+        if settings_cog and not await settings_cog.check_music_channel_permission(interaction):
+            await interaction.response.send_message("이 채널에서는 음악 명령어를 사용할 수 없습니다.", ephemeral=True)
+            return False
+        return True
+
     @app_commands.command(name="재생", description="YouTube에서 노래를 재생합니다")
     async def play(self, interaction: discord.Interaction, query: str):
+        if not await self.check_music_channel(interaction):
+            return
+
         await interaction.response.defer()
 
         if interaction.user.voice is None:
@@ -134,6 +145,9 @@ class Music(commands.Cog):
 
     @app_commands.command(name="정지", description="현재 재생 중인 노래를 정지합니다")
     async def stop(self, interaction: discord.Interaction):
+        if not await self.check_music_channel(interaction):
+            return
+
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
             self.queue[interaction.guild.id] = []
@@ -144,6 +158,9 @@ class Music(commands.Cog):
 
     @app_commands.command(name="스킵", description="현재 재생 중인 노래를 스킵합니다")
     async def skip(self, interaction: discord.Interaction):
+        if not await self.check_music_channel(interaction):
+            return
+
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
             await interaction.response.send_message("현재 재생 중인 노래를 스킵했습니다.")
@@ -152,6 +169,9 @@ class Music(commands.Cog):
 
     @app_commands.command(name="대기열", description="현재 음악 대기열을 확인합니다")
     async def queue_list(self, interaction: discord.Interaction):
+        if not await self.check_music_channel(interaction):
+            return
+
         if interaction.guild.id not in self.queue or not self.queue[interaction.guild.id]:
             await interaction.response.send_message("대기열이 비어있습니다.", ephemeral=True)
             return
