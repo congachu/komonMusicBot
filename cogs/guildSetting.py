@@ -7,14 +7,17 @@ class GuildSetting(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def setup_music_settings_table(self):
+    async def setup_guild_settings_table(self):
+        """ 새로운 테이블 구조 반영 """
         cursor = None
         try:
             cursor = self.bot.get_cursor()
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS music_bot_settings (
+                CREATE TABLE IF NOT EXISTS guild_setting (
                     guild_id BIGINT PRIMARY KEY,
-                    allowed_channel_id BIGINT,
+                    allowed_music_channel BIGINT,
+                    allowed_game_channel BIGINT,
+                    allowed_log_channel BIGINT,
                     UNIQUE(guild_id)
                 )
             """)
@@ -35,20 +38,20 @@ class GuildSetting(commands.Cog):
         cursor = None
         try:
             cursor = self.bot.get_cursor()
-            await self.setup_music_settings_table()
+            await self.setup_guild_settings_table()
 
             cursor.execute("""
-                INSERT INTO music_bot_settings 
-                    (guild_id, allowed_channel_id)
+                INSERT INTO guild_setting 
+                    (guild_id, allowed_music_channel)
                 VALUES (%s, %s)
                 ON CONFLICT (guild_id) 
                 DO UPDATE SET 
-                    allowed_channel_id = EXCLUDED.allowed_channel_id
+                    allowed_music_channel = EXCLUDED.allowed_music_channel
             """, (interaction.guild.id, interaction.channel.id))
 
             self.bot.conn.commit()
             await interaction.response.send_message(
-                f"{interaction.channel.mention} 채널에서만 노래봇 명령어를 사용할 수 있습니다.", ephemeral=True)
+                f"{interaction.channel.mention} 채널에서만 음악 명령어를 사용할 수 있습니다.", ephemeral=True)
 
         except Exception as e:
             self.bot.conn.rollback()
@@ -57,16 +60,16 @@ class GuildSetting(commands.Cog):
         finally:
             cursor.close()
 
-    @app_commands.command(name="음악채널확인", description="현재 노래봇 사용 가능한 채널을 확인합니다.")
+    @app_commands.command(name="음악채널확인", description="현재 음악 명령어 사용 가능한 채널을 확인합니다.")
     async def check_music_channel(self, interaction: discord.Interaction):
         cursor = None
         try:
             cursor = self.bot.get_cursor()
-            await self.setup_music_settings_table()
+            await self.setup_guild_settings_table()
 
             cursor.execute("""
-                SELECT allowed_channel_id
-                FROM music_bot_settings
+                SELECT allowed_music_channel
+                FROM guild_setting
                 WHERE guild_id = %s
             """, (interaction.guild.id,))
 
@@ -80,7 +83,7 @@ class GuildSetting(commands.Cog):
 
             embed = discord.Embed(title="음악 채널 설정", color=discord.Color.blue())
             embed.add_field(
-                name="허용된 채널",
+                name="허용된 음악 채널",
                 value=allowed_channel.mention if allowed_channel else "설정되지 않음",
                 inline=False
             )
@@ -98,8 +101,8 @@ class GuildSetting(commands.Cog):
         try:
             cursor = self.bot.get_cursor()
             cursor.execute("""
-                SELECT allowed_channel_id 
-                FROM music_bot_settings 
+                SELECT allowed_music_channel 
+                FROM guild_setting 
                 WHERE guild_id = %s
             """, (interaction.guild.id,))
 
@@ -109,7 +112,7 @@ class GuildSetting(commands.Cog):
             if not result or result[0] is None:
                 return True
 
-            # Check if the interaction is in the allowed channel
+            # Check if the interaction is in the allowed music channel
             return interaction.channel.id == result[0]
 
         except Exception as e:
