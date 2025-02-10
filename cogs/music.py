@@ -148,29 +148,35 @@ class Music(commands.Cog):
         if not await self.check_music_channel(interaction):
             return
 
+        await interaction.response.defer()
+
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
             self.queue[interaction.guild.id] = []
             await interaction.guild.voice_client.disconnect()
-            await interaction.response.send_message("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
+            await interaction.followup.send_message("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
         else:
-            await interaction.response.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+            await interaction.followup.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="스킵", description="현재 재생 중인 노래를 스킵합니다")
     async def skip(self, interaction: discord.Interaction):
         if not await self.check_music_channel(interaction):
             return
 
+        await interaction.response.defer()
+
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
-            await interaction.response.send_message("현재 재생 중인 노래를 스킵했습니다.")
+            await interaction.followup.send_message("현재 재생 중인 노래를 스킵했습니다.")
         else:
-            await interaction.response.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+            await interaction.followup.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="대기열", description="현재 음악 대기열을 확인합니다")
     async def queue_list(self, interaction: discord.Interaction):
         if not await self.check_music_channel(interaction):
             return
+
+        await interaction.response.defer()
 
         if interaction.guild.id not in self.queue or not self.queue[interaction.guild.id]:
             await interaction.response.send_message("대기열이 비어있습니다.", ephemeral=True)
@@ -179,7 +185,7 @@ class Music(commands.Cog):
         embed = discord.Embed(title="🎵 음악 대기열", color=discord.Color.blue())
         queue_text = "\n".join([f"{i + 1}. {song['title']}" for i, song in enumerate(self.queue[interaction.guild.id])])
         embed.add_field(name="대기열", value=queue_text or "대기열이 비어있습니다.", inline=False)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
