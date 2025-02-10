@@ -191,7 +191,7 @@ class Music(commands.Cog):
         await interaction.response.defer()
 
         if interaction.guild.id not in self.queue or not self.queue[interaction.guild.id]:
-            await interaction.response.send_message("대기열이 비어있습니다.", ephemeral=True)
+            await interaction.followup.send("대기열이 비어있습니다.", ephemeral=True)
             return
 
         embed = discord.Embed(title="🎵 음악 대기열", color=discord.Color.blue())
