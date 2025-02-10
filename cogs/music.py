@@ -83,7 +83,14 @@ class Music(commands.Cog):
     async def play_next(self, ctx):
         """다음 노래 재생 및 메시지 업데이트"""
         if ctx.guild.id not in self.queue or not self.queue[ctx.guild.id]:
-            await ctx.voice_client.disconnect()
+            await ctx.send("🎵 대기열이 비어 있습니다. 3분 동안 새로운 곡이 추가되지 않으면 퇴장합니다.")
+            await asyncio.sleep(180)  # 3분 대기
+
+            # 3분 후에도 여전히 대기열이 비어 있고, 재생 중이지 않다면 퇴장
+            if ctx.guild.id not in self.queue or not self.queue[ctx.guild.id]:
+                if ctx.guild.voice_client and not ctx.guild.voice_client.is_playing():
+                    await ctx.voice_client.disconnect()
+                    await ctx.send("🔇장시간 미사용으로 음성 채널을 떠났습니다.")
             return
 
         next_song = self.queue[ctx.guild.id].pop(0)

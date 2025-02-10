@@ -80,10 +80,20 @@ class AClient(commands.Bot):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if member.id == self.user.id:
-            if after.channel is None:
+            if after.channel and not before.channel:  # 봇이 음성 채널에 처음 들어갈 때
+                try:
+                    await member.edit(deafen=True)  # ⬅ 헤드셋 끄기 (소리 듣기 차단)
+                    print("🔇 봇이 자동으로 헤드셋을 껐습니다.")
+                except discord.Forbidden:
+                    print("⚠️ 봇에게 '소리 끄기' 권한이 없습니다.")
+                except Exception as e:
+                    print(f"❌ 헤드셋 끄기 오류 발생: {e}")
+
+            elif after.channel is None:  # 봇이 음성 채널에서 나간 경우
                 await asyncio.sleep(5)
-                if not any(member for member in before.channel.members if not member.bot):
-                    await member.guild.voice_client.disconnect()
+                voice_client = before.channel.guild.voice_client  # ⬅ `voice_client` 가져오기
+                if voice_client and not any(member for member in before.channel.members if not member.bot):
+                    await voice_client.disconnect()
                     print("🛑 봇이 음성 채널에서 자동 퇴장했습니다.")
 
 client = AClient()
