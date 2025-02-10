@@ -81,16 +81,21 @@ class Music(commands.Cog):
             return None
 
     async def play_next(self, ctx):
-        """다음 노래 재생 및 메시지 업데이트"""
+        """다음 노래 재생 및 자동 퇴장 방지"""
         if ctx.guild.id not in self.queue or not self.queue[ctx.guild.id]:
             await ctx.send("🎵 대기열이 비어 있습니다. 3분 동안 새로운 곡이 추가되지 않으면 퇴장합니다.")
-            await asyncio.sleep(180)  # 3분 대기
 
-            # 3분 후에도 여전히 대기열이 비어 있고, 재생 중이지 않다면 퇴장
-            if ctx.guild.id not in self.queue or not self.queue[ctx.guild.id]:
-                if ctx.guild.voice_client and not ctx.guild.voice_client.is_playing():
-                    await ctx.voice_client.disconnect()
-                    await ctx.send("🔇장시간 미사용으로 음성 채널을 떠났습니다.")
+            for _ in range(18):  # ⬅ 10초 간격으로 체크 (180회 → 18회로 최적화)
+                await asyncio.sleep(10)  # 10초마다 체크
+                if not ctx.guild.voice_client:  # ⬅ 봇이 이미 채널을 나갔으면 종료
+                    return
+                if ctx.guild.voice_client.is_playing():
+                    return  # ⬅ 노래가 재생 중이라면 퇴장하지 않음
+
+            # 3분 후에도 여전히 대기열이 비어 있고, 재생 중이 아니면 퇴장
+            if ctx.guild.voice_client and not ctx.guild.voice_client.is_playing():
+                await ctx.voice_client.disconnect()
+                await ctx.send("🔇 장시간 미사용으로 인해 음성 채널을 떠났습니다.")
             return
 
         next_song = self.queue[ctx.guild.id].pop(0)
@@ -161,9 +166,9 @@ class Music(commands.Cog):
             interaction.guild.voice_client.stop()
             self.queue[interaction.guild.id] = []
             await interaction.guild.voice_client.disconnect()
-            await interaction.followup.send_message("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
+            await interaction.followup.send("음악 재생을 중지하고 음성 채널에서 나갔습니다.")
         else:
-            await interaction.followup.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+            await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="스킵", description="현재 재생 중인 노래를 스킵합니다")
     async def skip(self, interaction: discord.Interaction):
@@ -174,9 +179,9 @@ class Music(commands.Cog):
 
         if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.stop()
-            await interaction.followup.send_message("현재 재생 중인 노래를 스킵했습니다.")
+            await interaction.followup.send("현재 재생 중인 노래를 스킵했습니다.")
         else:
-            await interaction.followup.send_message("현재 재생 중인 음악이 없습니다.", ephemeral=True)
+            await interaction.followup.send("현재 재생 중인 음악이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="대기열", description="현재 음악 대기열을 확인합니다")
     async def queue_list(self, interaction: discord.Interaction):
@@ -192,7 +197,7 @@ class Music(commands.Cog):
         embed = discord.Embed(title="🎵 음악 대기열", color=discord.Color.blue())
         queue_text = "\n".join([f"{i + 1}. {song['title']}" for i, song in enumerate(self.queue[interaction.guild.id])])
         embed.add_field(name="대기열", value=queue_text or "대기열이 비어있습니다.", inline=False)
-        await interaction.followup.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
