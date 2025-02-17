@@ -135,14 +135,14 @@ class Bank(commands.Cog):
         if not user_data:
             # 사용자가 없으면 추가
             print(user_id)
-            self.bot.cursor.execute("INSERT INTO users (uuid) VALUES (%s)", (user_id,))
+            self.bot.cursor.execute("INSERT INTO users (uuid, money) VALUES (%s, 10000)", (user_id,))
             self.bot.conn.commit()
 
     async def check_game_channel(self, interaction):
         """음악 명령어가 올바른 채널에서 실행되는지 확인"""
         settings_cog = self.bot.get_cog("GuildSetting")
         if settings_cog and not await settings_cog.check_channel_permission(interaction, "game"):
-            await interaction.followup.send("이 채널에서는 게임 명령어를 사용할 수 없습니다.", ephemeral=True)
+            await interaction.response.send_message("이 채널에서는 게임 명령어를 사용할 수 없습니다.", ephemeral=True)
             return False
         return True
 
@@ -164,7 +164,7 @@ class Bank(commands.Cog):
         # 사용자 잔액 조회
         self.bot.cursor.execute("SELECT money FROM users WHERE uuid = %s", (user_id,))
         user_data = self.bot.cursor.fetchone()
-        await interaction.followup.send(f"{member.name}님의 잔액: {user_data[0]:,}LC")
+        await interaction.response.send_message(f"{member.mention}님의 잔액: {user_data[0]:,}LC")
 
     @app_commands.command(name="보상금", description="개발자 전용 명령어입니다.")
     async def increase_money(self, interaction: discord.Interaction, amount: int, receiver: discord.Member = None):
@@ -187,9 +187,9 @@ class Bank(commands.Cog):
 
         # 메시지 출력 (receiver가 본인인지 다른 사용자인지에 따라 다른 메시지)
         if receiver_id == interaction.user.id:
-            await interaction.followup.send(f"{interaction.user.name}님의 잔액이 {amount:,}LC만큼 추가되었습니다.")
+            await interaction.response.send_message(f"{interaction.user.mention}님의 잔액이 {amount:,}LC만큼 추가되었습니다.")
         else:
-            await interaction.followup.send(f"{receiver.name}님의 잔액이 {amount:,}LC만큼 추가되었습니다.")
+            await interaction.response.send_message(f"{receiver.mention}님의 잔액이 {amount:,}LC만큼 추가되었습니다.")
 
     @app_commands.command(name="벌금", description="개발자 전용 명령어입니다.")
     async def decrease_money(self, interaction: discord.Interaction, amount: int, receiver: discord.Member = None):
@@ -212,9 +212,9 @@ class Bank(commands.Cog):
 
         # 메시지 출력 (receiver가 본인인지 다른 사용자인지에 따라 다른 메시지)
         if receiver_id == interaction.user.id:
-            await interaction.followup.send(f"{interaction.user.name}님의 잔액이 {amount:,}LC만큼 감소되었습니다.")
+            await interaction.response.send_message(f"{interaction.user.mention}님의 잔액이 {amount:,}LC만큼 감소되었습니다.")
         else:
-            await interaction.followup.send(f"{receiver.name}님의 잔액이 {amount:,}LC만큼 감소되었습니다.")
+            await interaction.response.send_message(f"{receiver.mention}님의 잔액이 {amount:,}LC만큼 감소되었습니다.")
 
     @app_commands.command(name="송금", description="다른 사용자에게 LC를 송금합니다.")
     async def send_money(self, interaction: discord.Interaction, receiver: discord.Member, amount: int):
@@ -233,7 +233,7 @@ class Bank(commands.Cog):
         sender_balance = self.bot.cursor.fetchone()[0]
 
         if sender_balance < amount:
-            await interaction.followup.send("잔액이 부족합니다.", ephemeral=True)
+            await interaction.response.send_message("잔액이 부족합니다.", ephemeral=True)
             return
 
         # 송금 처리
@@ -241,8 +241,8 @@ class Bank(commands.Cog):
         self.bot.cursor.execute("UPDATE users SET money = money + %s WHERE uuid = %s", (amount, receiver_id))
         self.bot.conn.commit()
 
-        await interaction.followup.send(
-            f"{interaction.user.name}님이 {receiver.name}님에게 {amount:,}LC를 송금했습니다.")
+        await interaction.response.send_message(
+            f"{interaction.user.mention}님이 {receiver.mention}님에게 {amount:,}LC를 송금했습니다.")
 
     @app_commands.command(name="꽁돈", description="1시간마다 꽁돈을 지급합니다.")
     async def hourly_reward(self, interaction: discord.Interaction):
@@ -266,14 +266,14 @@ class Bank(commands.Cog):
                                     (new_balance, current_time, user_id))
             self.bot.conn.commit()
 
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"{reward_amount}LC 획득!\n잔액: {new_balance:,}LC")
         else:
             # Calculate the remaining time until the next reward
             remaining_time = 3600 - (current_time - last_hourly).total_seconds()
             minutes = int(remaining_time // 60)
             seconds = int(remaining_time % 60)
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"{minutes}분 {seconds}초 후에 꽁돈을 받을 수 있습니다.", ephemeral=True)
 
     @app_commands.command(name="이자", description="은행 이자를 받습니다.")
@@ -289,7 +289,7 @@ class Bank(commands.Cog):
         last_interest = user_data[1]
 
         if current_balance < 10000:
-            await interaction.followup.send("이자는 잔고 10000LC부터 받을 수 있습니다.")
+            await interaction.response.send_message("이자는 잔고 10000LC부터 받을 수 있습니다.", ephemeral=True)
             return
 
         # 마지막 이자 지급 시간 확인
@@ -300,7 +300,7 @@ class Bank(commands.Cog):
                                     (new_balance, datetime.datetime.now(), user_id))
             self.bot.conn.commit()
 
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"오늘 {int(current_balance * 0.075):,}LC의 이자를 받으셨습니다.\n현재 잔액: {new_balance:,}원")
         else:
             now = datetime.datetime.now()
@@ -311,7 +311,7 @@ class Bank(commands.Cog):
             minutes = (remaining_time.seconds % 3600) // 60
             seconds = remaining_time.seconds % 60
 
-            await interaction.followup.send(f"다음 이자까지 {hours}시간 {minutes}분 {seconds}초 남았습니다.", ephemeral=True)
+            await interaction.response.send_message(f"다음 이자까지 {hours}시간 {minutes}분 {seconds}초 남았습니다.", ephemeral=True)
 
     async def show_balance_rank(self, interaction: discord.Interaction, page: int = 1):
         # 명령어를 호출한 서버의 멤버 목록 가져오기
@@ -338,10 +338,10 @@ class Bank(commands.Cog):
         for rank, (user_id, balance) in enumerate(user_data_page, start=start_index + 1):
             user = interaction.guild.get_member(user_id)
             if user:
-                username = user.name
+                username = user.display_name
             else:
                 username = f"Unknown User ({user_id})"
-            embed.add_field(name=f"{rank}. {username}", value=f"{balance:,}원", inline=False)
+            embed.add_field(name=f"{rank}. {username}({user.name})", value=f"{balance:,}원", inline=False)
 
         # 버튼이 있는 뷰 생성
         view = PaginationView(self.bot, total_pages, page)
@@ -350,7 +350,7 @@ class Bank(commands.Cog):
         if interaction.response.is_done():
             await interaction.message.edit(embed=embed, view=view)
         else:
-            await interaction.followup.send(embed=embed, view=view)
+            await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="순위", description="이 서버의 사용자들의 잔고 순위를 보여줍니다.")
     async def balance_rank_command(self, interaction: discord.Interaction):
