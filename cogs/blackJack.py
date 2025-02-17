@@ -27,10 +27,9 @@ class Deck:
 class Blackjack(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.games = {}  # 진행 중인 게임 저장
+        self.games = {}
 
     async def ensure_user(self, user_id):
-        """유저가 존재하는지 확인 후 없으면 추가"""
         self.bot.cursor.execute("SELECT money FROM users WHERE uuid = %s", (user_id,))
         user_data = self.bot.cursor.fetchone()
         if not user_data:
@@ -39,23 +38,32 @@ class Blackjack(commands.Cog):
             return 1000
         return user_data[0]
 
-    async def check_game_channel(self, interaction):
-        """게임 채널에서만 실행되도록 확인"""
-        settings_cog = self.bot.get_cog("GuildSetting")
-        if settings_cog and not await settings_cog.check_channel_permission(interaction, "game"):
-            await interaction.response.send_message("이 채널에서는 게임 명령어를 사용할 수 없습니다.", ephemeral=True)
-            return False
-        return True
+    def calculate_hand(self, hand):
+        total = 0
+        aces = 0
+
+        for card in hand:
+            if card.value == 1:
+                aces += 1
+            elif card.value >= 11:
+                total += 10
+            else:
+                total += card.value
+
+        for _ in range(aces):
+            if total + 11 <= 21:
+                total += 11
+            else:
+                total += 1
+
+        return total
 
     @app_commands.command(name="블랙잭", description="블랙잭 게임을 시작합니다.")
     async def blackjack(self, interaction: discord.Interaction, amount: int):
-        """블랙잭 게임 시작"""
-        if not await self.check_game_channel(interaction):
-            return
-
         user_id = interaction.user.id
+
         if user_id in self.games:
-            await interaction.response.send_message("이미 진행 중인 게임이 있습니다. 현재 게임을 완료해주세요.", ephemeral=True)
+            await interaction.response.send_message("이미 진행 중인 게임이 있습니다.", ephemeral=True)
             return
 
         await interaction.response.defer()
@@ -65,65 +73,26 @@ class Blackjack(commands.Cog):
             await interaction.followup.send("올바른 금액을 입력하세요.", ephemeral=True)
             return
 
-        deck = [i for i in range(1, 14)] * 4
-        random.shuffle(deck)
+        deck = Deck()
+        player_hand = [deck.draw(), deck.draw()]
+        dealer_hand = [deck.draw(), deck.draw()]
 
-        player_hand, dealer_hand = [deck.pop(), deck.pop()], [deck.pop(), deck.pop()]
         self.games[user_id] = {
             "deck": deck,
             "player_hand": player_hand,
             "dealer_hand": dealer_hand,
             "amount": amount,
-            "message": None  # 메시지 저장
+            "status": "playing",
+            "message": None
         }
 
-        view = self.create_game_buttons(interaction)
-        message = await self.update_game_message(interaction, user_id, view)
-        self.games[user_id]["message"] = message  # 메시지 저장
+        view = BlackjackView(self.bot, user_id)
+        await self.update_game_message(interaction, user_id, view)
 
-    def create_game_buttons(self, interaction):
-        """버튼 뷰 생성"""
-        view = discord.ui.View()
-        user_id = interaction.user.id
-
-        hit_button = discord.ui.Button(label="히트", style=discord.ButtonStyle.primary)
-        stand_button = discord.ui.Button(label="스탠드", style=discord.ButtonStyle.secondary)
-
-        async def hit_callback(interaction: discord.Interaction):
-            if user_id not in self.games:
-                return await interaction.response.send_message("진행 중인 게임이 없습니다.", ephemeral=True)
-
-            await interaction.response.defer()
-            game = self.games[user_id]
-            game["player_hand"].append(game["deck"].pop())
-
-            if sum(game["player_hand"]) > 21:
-                await self.end_game(interaction, user_id, "bust")
-            else:
-                await self.update_game_message(interaction, user_id, view)
-
-        async def stand_callback(interaction: discord.Interaction):
-            if user_id not in self.games:
-                return await interaction.response.send_message("진행 중인 게임이 없습니다.", ephemeral=True)
-
-            await interaction.response.defer()
-            game = self.games[user_id]
-            while sum(game["dealer_hand"]) < 17:
-                game["dealer_hand"].append(game["deck"].pop())
-
-            await self.end_game(interaction, user_id, "stand")
-
-        hit_button.callback = hit_callback
-        stand_button.callback = stand_callback
-        view.add_item(hit_button)
-        view.add_item(stand_button)
-
-        return view
-
-    async def update_game_message(self, interaction, user_id, view=None):
-        """게임 상태 업데이트 (임베드 메시지)"""
+    async def update_game_message(self, interaction, user_id, view):
+        """기존 임베드를 수정하여 업데이트"""
         game = self.games[user_id]
-        player_total = sum(game["player_hand"])
+        player_total = self.calculate_hand(game["player_hand"])
         dealer_first = game["dealer_hand"][0]
 
         embed = discord.Embed(
@@ -135,18 +104,18 @@ class Blackjack(commands.Cog):
         embed.set_footer(text=f"배팅 금액: {game['amount']:,} LC")
 
         if game["message"] is None:
-            return await interaction.followup.send(embed=embed, view=view)
+            game["message"] = await interaction.followup.send(embed=embed, view=view)
         else:
             await game["message"].edit(embed=embed, view=view)
 
-    async def end_game(self, interaction, user_id, reason):
-        """게임 종료 및 결과 처리 (임베드 메시지)"""
+    async def end_game(self, interaction, user_id, reason, view):
         game = self.games.pop(user_id, None)
         if not game:
-            return await interaction.followup.send("게임 데이터가 없습니다.", ephemeral=True)
+            await interaction.followup.send("게임 데이터가 없습니다.", ephemeral=True)
+            return
 
-        player_total = sum(game["player_hand"])
-        dealer_total = sum(game["dealer_hand"])
+        player_total = self.calculate_hand(game["player_hand"])
+        dealer_total = self.calculate_hand(game["dealer_hand"])
         amount = game["amount"]
         winnings = 0
 
@@ -184,10 +153,60 @@ class Blackjack(commands.Cog):
         embed.add_field(name="결과", value=result, inline=False)
         embed.set_footer(text=f"현재 잔액: {new_balance:,} LC")
 
+        view.stop()
+
+        # 기존 메시지가 없으면 새로운 메시지를 생성
         if game["message"]:
             await game["message"].edit(embed=embed, view=None)
         else:
             await interaction.followup.send(embed=embed)
+
+
+class BlackjackView(discord.ui.View):
+    def __init__(self, bot, user_id):
+        super().__init__(timeout=60)
+        self.bot = bot
+        self.user_id = user_id
+
+    @discord.ui.button(label="히트", style=discord.ButtonStyle.primary)
+    async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+
+        if interaction.user.id != self.user_id:
+            await interaction.followup.send("이 게임에 참여할 수 없습니다.", ephemeral=True)
+            return
+
+        game = self.bot.get_cog("Blackjack").games.get(self.user_id)
+        if not game or game["status"] != "playing":
+            await interaction.followup.send("게임이 이미 종료되었습니다.", ephemeral=True)
+            return
+
+        game["player_hand"].append(game["deck"].draw())
+        player_total = self.bot.get_cog("Blackjack").calculate_hand(game["player_hand"])
+
+        if player_total > 21:
+            await self.bot.get_cog("Blackjack").end_game(interaction, self.user_id, "bust", self)
+        else:
+            await self.bot.get_cog("Blackjack").update_game_message(interaction, self.user_id, self)
+
+    @discord.ui.button(label="스탠드", style=discord.ButtonStyle.secondary)
+    async def stand_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+
+        if interaction.user.id != self.user_id:
+            await interaction.followup.send("이 게임에 참여할 수 없습니다.", ephemeral=True)
+            return
+
+        game = self.bot.get_cog("Blackjack").games.get(self.user_id)
+        if not game or game["status"] != "playing":
+            await interaction.followup.send("게임이 이미 종료되었습니다.", ephemeral=True)
+            return
+
+        # 딜러가 17 이상이 될 때까지 카드 뽑기
+        while self.bot.get_cog("Blackjack").calculate_hand(game["dealer_hand"]) < 17:
+            game["dealer_hand"].append(game["deck"].draw())
+
+        await self.bot.get_cog("Blackjack").end_game(interaction, self.user_id, "stand", self)
 
 
 async def setup(bot):
