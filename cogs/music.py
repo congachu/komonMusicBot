@@ -114,7 +114,7 @@ class Music(commands.Cog):
     async def check_music_channel(self, interaction):
         """음악 명령어가 올바른 채널에서 실행되는지 확인"""
         settings_cog = self.bot.get_cog("GuildSetting")
-        if settings_cog and not await settings_cog.check_music_channel_permission(interaction):
+        if settings_cog and not await settings_cog.check_channel_permission(interaction, "music"):
             await interaction.response.send_message("이 채널에서는 음악 명령어를 사용할 수 없습니다.", ephemeral=True)
             return False
         return True

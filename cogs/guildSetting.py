@@ -96,15 +96,28 @@ class GuildSetting(commands.Cog):
         finally:
             cursor.close()
 
-    async def check_music_channel_permission(self, interaction: discord.Interaction) -> bool:
+    async def check_channel_permission(self, interaction: discord.Interaction, tag: str) -> bool:
         cursor = None
         try:
             cursor = self.bot.get_cursor()
-            cursor.execute("""
-                SELECT allowed_music_channel 
-                FROM guild_setting 
-                WHERE guild_id = %s
-            """, (interaction.guild.id,))
+            if(tag=="music"):
+                cursor.execute("""
+                    SELECT allowed_music_channel 
+                    FROM guild_setting 
+                    WHERE guild_id = %s
+                """, (interaction.guild.id,))
+            elif(tag=="game"):
+                cursor.execute("""
+                    SELECT allowed_game_channel
+                    FROM guild_setting 
+                    WHERE guild_id = %s
+                """, (interaction.guild.id,))
+            elif(tag=="log"):
+                cursor.execute("""
+                    SELECT allowed_log_channel
+                    FROM guild_setting 
+                    WHERE guild_id = %s
+                """, (interaction.guild.id,))
 
             result = cursor.fetchone()
 
