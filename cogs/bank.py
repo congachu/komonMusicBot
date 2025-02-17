@@ -283,6 +283,8 @@ class Bank(commands.Cog):
 
         user_id = interaction.user.id
 
+        await self.ensure_user(user_id)
+
         self.bot.cursor.execute("SELECT money, last_interest FROM users WHERE uuid = %s", (user_id,))
         user_data = self.bot.cursor.fetchone()
         current_balance = user_data[0]
