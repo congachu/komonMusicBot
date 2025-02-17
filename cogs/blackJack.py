@@ -33,9 +33,9 @@ class Blackjack(commands.Cog):
         self.bot.cursor.execute("SELECT money FROM users WHERE uuid = %s", (user_id,))
         user_data = self.bot.cursor.fetchone()
         if not user_data:
-            self.bot.cursor.execute("INSERT INTO users (uuid, money) VALUES (%s, 1000)", (user_id,))
+            self.bot.cursor.execute("INSERT INTO users (uuid, money) VALUES (%s, 10000)", (user_id,))
             self.bot.conn.commit()
-            return 1000
+            return 10000
         return user_data[0]
 
     def calculate_hand(self, hand):
