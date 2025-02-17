@@ -303,7 +303,7 @@ class Bank(commands.Cog):
             self.bot.conn.commit()
 
             await interaction.response.send_message(
-                f"오늘 {int(current_balance * 0.075):,}LC의 이자를 받으셨습니다.\n현재 잔액: {new_balance:,}원")
+                f"오늘 {int(current_balance * 0.075):,}LC의 이자를 받으셨습니다.\n현재 잔액: {new_balance:,}LC")
         else:
             now = datetime.datetime.now()
             next_midnight = (now + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -343,7 +343,7 @@ class Bank(commands.Cog):
                 username = user.display_name
             else:
                 username = f"Unknown User ({user_id})"
-            embed.add_field(name=f"{rank}. {username}({user.name})", value=f"{balance:,}원", inline=False)
+            embed.add_field(name=f"{rank}. {username}({user.name})", value=f"{balance:,}LC", inline=False)
 
         # 버튼이 있는 뷰 생성
         view = PaginationView(self.bot, total_pages, page)
