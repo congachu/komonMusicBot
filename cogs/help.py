@@ -7,84 +7,58 @@ class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    help_categories = {
-        "노래": {
-            "🎵 음악 명령어": """
-            **/재생 [노래제목/URL]** - YouTube에서 노래를 검색하여 재생  
-            **/정지** - 현재 재생 중인 노래를 정지하고 음성 채널에서 나감  
-            **/스킵** - 현재 재생 중인 노래를 건너뜀  
-            **/대기열** - 현재 재생 목록을 표시  
-            """
-        },
-        "경제": {
-            "💰 경제 시스템": """
-            **/잔고** - 현재 잔액 확인  
-            **/송금 [@유저] [금액]** - 다른 유저에게 LC 송금  
-            **/꽁돈** - 1시간마다 무료 LC 획득  
-            **/이자** - 하루에 한 번 은행 이자 받기 (10,000 LC 이상 필요)  
-            **/순위** - 서버 내 유저 잔고 순위 확인  
-            """
-        },
-        "도박": {
-            "🃏 블랙잭 게임": """
-            **/블랙잭 [금액]** - 블랙잭 게임 시작  
-            **히트** - 추가 카드 받기  
-            **스탠드** - 현재 카드 유지하고 결과 확인  
-            """
-        },
-        "관리자": {
-            "⚙️ 관리자 명령어 (개발자 전용)": """
-            **/보상금 [@유저] [금액]** - 특정 유저에게 LC 추가  
-            **/벌금 [@유저] [금액]** - 특정 유저 LC 감소  
-            """
-        },
-        "설정": {
-            "🔧 채널 설정": """
-            **/채널설정 [음악/게임/로그]** - 특정 기능을 사용할 채널 설정  
-            **/채널확인** - 현재 설정된 채널 확인  
-            """
-        },
-        "주의사항": {
-            "📝 주의사항": """
-            • 모든 명령어는 **설정된 채널**에서만 사용 가능  
-            • 음악 재생 전 반드시 **음성 채널에 접속**해야 함  
-            • `/보상금` 및 `/벌금` 명령어는 **개발자만 사용 가능**  
-            • `/이자`는 하루 한 번만 가능하며, 잔고 10,000 LC 이상 필요  
-            """
-        }
-    }
-
-    @app_commands.command(name="도움말", description="사용 가능한 명령어를 확인합니다.")
+    @app_commands.command(name="도움말", description="사용 가능한 명령어 목록을 확인합니다.")
     @app_commands.choices(
-        query=[
-            app_commands.Choice(name="노래", value="노래"),
-            app_commands.Choice(name="경제", value="경제"),
-            app_commands.Choice(name="도박", value="도박"),
-            app_commands.Choice(name="관리자", value="관리자"),
-            app_commands.Choice(name="설정", value="설정"),
-            app_commands.Choice(name="주의사항", value="주의사항")
+        category=[
+            app_commands.Choice(name="음악", value="music"),
+            app_commands.Choice(name="경제", value="economy"),
+            app_commands.Choice(name="도박", value="gambling"),
+            app_commands.Choice(name="설정", value="settings"),
         ]
     )
-    async def help(self, interaction: discord.Interaction, query: str = None):
+    async def help(self, interaction: discord.Interaction, category: str = None):
         """도움말 명령어"""
-        embed = discord.Embed(title="사자봇 도움말", color=discord.Color.gold())
+        embed = discord.Embed(title="🦁 사자봇 도움말", color=discord.Color.gold())
 
-        if query:
-            # 특정 카테고리 요청 시 해당 카테고리만 표시
-            category = self.help_categories.get(query)
-            if category:
-                for name, value in category.items():
-                    embed.add_field(name=name, value=value, inline=False)
-            else:
-                await interaction.response.send_message("해당 카테고리는 존재하지 않습니다.", ephemeral=True)
-                return
+        if category is None:
+            # 전체 카테고리 목록 출력
+            embed.description = "사자봇의 모든 명령어를 확인할 수 있습니다.\n아래 카테고리 중 하나를 선택하여 자세한 도움말을 확인하세요."
+            embed.add_field(name="🎵 음악", value="`/도움말 음악`", inline=True)
+            embed.add_field(name="💰 경제", value="`/도움말 경제`", inline=True)
+            embed.add_field(name="🎲 도박", value="`/도움말 도박`", inline=True)
+            embed.add_field(name="⚙️ 설정", value="`/도움말 설정`", inline=True)
+        elif category == "music":
+            embed.description = "**🎵 음악 명령어**"
+            embed.add_field(name="`/재생 [노래제목/URL]`", value="YouTube에서 노래를 검색하여 재생", inline=False)
+            embed.add_field(name="`/정지`", value="현재 재생 중인 노래를 정지하고 음성 채널에서 나감", inline=False)
+            embed.add_field(name="`/스킵`", value="현재 재생 중인 노래를 건너뜀", inline=False)
+            embed.add_field(name="`/대기열`", value="재생 대기 중인 노래 목록 확인", inline=False)
+        elif category == "economy":
+            embed.description = "**💰 경제 명령어**"
+            embed.add_field(name="`/잔고`", value="현재 잔액을 확인", inline=False)
+            embed.add_field(name="`/송금 [@유저] [금액]`", value="다른 유저에게 LC를 송금", inline=False)
+            embed.add_field(name="`/꽁돈`", value="1시간마다 무료 LC 획득 가능", inline=False)
+            embed.add_field(name="`/이자`", value="은행 이자 수령 (하루 1회, 10,000 LC 이상 보유 시)", inline=False)
+            embed.add_field(name="`/순위`", value="서버 내 잔액 순위 확인", inline=False)
+        elif category == "gambling":
+            embed.description = "**🎲 도박 명령어**"
+            embed.add_field(name="`/블랙잭 [금액]`", value="딜러와 블랙잭 승부 (21점에 가까운 쪽이 승리)", inline=False)
+            embed.add_field(name="`/하이로우 [금액]`", value="카드의 다음 숫자가 높을지 낮을지 예측", inline=False)
+            embed.add_field(name="`/슬롯머신 [금액]`", value="슬롯머신을 돌려 동일한 그림이 나오면 당첨", inline=False)
+            embed.add_field(name="`/러시안룰렛 [금액] [1~6]`", value="1/6 확률로 즉사하는 러시안룰렛", inline=False)
+            embed.add_field(name="`/주사위배틀 [금액]`", value="개최자가 먼저 주사위를 굴리고 참가자와 대결", inline=False)
+        elif category == "settings":
+            embed.description = "**⚙️ 설정 명령어**"
+            embed.add_field(name="`/채널설정 [음악/게임/로그]`", value="특정 기능을 사용할 채널을 설정", inline=False)
+            embed.add_field(name="`/채널확인`", value="현재 설정된 채널 확인", inline=False)
         else:
-            # 쿼리가 없을 때 전체 카테고리 목록 표시
-            embed.description = "사용 가능한 도움말 카테고리:\n" + "\n".join(
-                [f"- `/도움말 {key}`" for key in self.help_categories.keys()]
-            )
+            embed.description = "올바른 카테고리를 선택하세요."
+            embed.add_field(name="🎵 음악", value="`/도움말 음악`", inline=True)
+            embed.add_field(name="💰 경제", value="`/도움말 경제`", inline=True)
+            embed.add_field(name="🎲 도박", value="`/도움말 도박`", inline=True)
+            embed.add_field(name="⚙️ 설정", value="`/도움말 설정`", inline=True)
 
-        embed.set_footer(text="문의사항이나 버그 제보는 공식 서버에서 알려주세요.\nhttps://discord.gg/ptx9u9D4WV")
+        embed.set_footer(text="문의사항이나 버그 제보는 공식서버에 남겨주세요.\nhttps://discord.gg/ptx9u9D4WV")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

@@ -2,6 +2,11 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/cogs/bank.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cogs/blackJack.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cogs/diceBattle.py" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/cogs/guildSetting.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cogs/highLow.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cogs/russianRoulette.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cogs/slotMachine.py" dialect="GenericSQL" />
   </component>
 </project>

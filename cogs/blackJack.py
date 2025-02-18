@@ -38,6 +38,13 @@ class Blackjack(commands.Cog):
             return 10000
         return user_data[0]
 
+    async def check_game_channel(self, interaction):
+        settings_cog = self.bot.get_cog("GuildSetting")
+        if settings_cog and not await settings_cog.check_channel_permission(interaction, "game"):
+            await interaction.response.send_message("이 채널에서는 게임 명령어를 사용할 수 없습니다.", ephemeral=True)
+            return False
+        return True
+
     def calculate_hand(self, hand):
         total = 0
         aces = 0
@@ -60,6 +67,9 @@ class Blackjack(commands.Cog):
 
     @app_commands.command(name="블랙잭", description="블랙잭 게임을 시작합니다.")
     async def blackjack(self, interaction: discord.Interaction, amount: int):
+        if not await self.check_game_channel(interaction):
+            return
+
         user_id = interaction.user.id
 
         if user_id in self.games:
