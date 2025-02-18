@@ -244,7 +244,7 @@ class Bank(commands.Cog):
         await interaction.response.send_message(
             f"{interaction.user.mention}님이 {receiver.mention}님에게 {amount:,}LC를 송금했습니다.")
 
-    @app_commands.command(name="꽁돈", description="1시간마다 꽁돈을 지급합니다.")
+    @app_commands.command(name="꽁돈", description="10분마다 꽁돈을 지급합니다.")
     async def hourly_reward(self, interaction: discord.Interaction):
         if not await self.check_game_channel(interaction):
             return
@@ -257,7 +257,9 @@ class Bank(commands.Cog):
         last_hourly = user_data[1]
         current_time = datetime.datetime.now()
 
-        if not last_hourly or (current_time - last_hourly).total_seconds() >= 3600:
+        cooldown = 600  # 10분(600초)으로 변경**
+
+        if not last_hourly or (current_time - last_hourly).total_seconds() >= cooldown:
             reward_amount = random.randint(1000, 5000)
             new_balance = user_data[0] + reward_amount
 
@@ -270,7 +272,7 @@ class Bank(commands.Cog):
                 f"{reward_amount}LC 획득!\n잔액: {new_balance:,}LC")
         else:
             # Calculate the remaining time until the next reward
-            remaining_time = 3600 - (current_time - last_hourly).total_seconds()
+            remaining_time = cooldown - (current_time - last_hourly).total_seconds()
             minutes = int(remaining_time // 60)
             seconds = int(remaining_time % 60)
             await interaction.response.send_message(
