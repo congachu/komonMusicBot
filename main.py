@@ -9,7 +9,10 @@ load_dotenv()
 
 class AClient(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=discord.Intents.all())
+        intents = discord.Intents.default()  # 기본 인텐트만 활성화
+        intents.members = True  # ✅ 승인된 'Server Members Intent' 활성화
+
+        super().__init__(command_prefix="!", intents=intents)
         self.synced = False
         self.setup_db_connection()
 
