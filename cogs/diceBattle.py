@@ -84,6 +84,10 @@ class DiceBattleView(discord.ui.View):
 
         user_id = interaction.user.id
 
+        if user_id == self.host_id:
+            await interaction.followup.send("자신이 개최한 배틀에는 참가할 수 없습니다.", ephemeral=True)
+            return
+
         # 중복 참가 방지 (선착순 1명만 가능)
         if game["participant_id"]:
             await interaction.followup.send("이미 다른 참가자가 참여했습니다.", ephemeral=True)
