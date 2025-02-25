@@ -35,6 +35,8 @@ class Music(commands.Cog):
             'outtmpl': '%(title)s.%(ext)s',
             'restrictfilenames': True,
             'noplaylist': True,
+            'age_limit': 18,
+            'match_filter': '!is_live & !webpage_url like *%encrypted%',
             'nocheckcertificate': True,
             'quiet': True,
             'no_warnings': True,
